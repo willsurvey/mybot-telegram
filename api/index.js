@@ -9,9 +9,9 @@ const REMOVE_BG_API_KEY = process.env.REMOVE_BG_API_KEY;
 bot.start((ctx) => {
   ctx.reply(
     "👋 Halo! Saya siap membantu.\n\n" +
-      "✨ Fitur yang tersedia:\n" +
+      "✨ Fitur:\n" +
       "🖼️ /gambar <prompt> → Buat gambar\n" +
-      "🗑️ (reply foto dengan /removebg) → Hapus background\n" +
+      "🗑️ Reply foto + /removebg → Hapus background\n" +
       "🎬 /video <prompt> → Buat video"
   );
 });
@@ -25,7 +25,9 @@ bot.command("gambar", async (ctx) => {
     ctx.reply("🖼️ Sedang membuat gambar...");
 
     const { data } = await axios.get(
-      `https://zaikyoov3.onrender.com/api/can_gpt_blackbox?prompt=${encodeURIComponent(prompt)}`
+      `https://zaikyoov3.onrender.com/api/can_gpt_blackbox?prompt=${encodeURIComponent(
+        prompt
+      )}`
     );
 
     if (data.status === "completed" && data.output?.length > 0) {
@@ -80,7 +82,9 @@ bot.command("video", async (ctx) => {
     ctx.reply("🎬 Membuat video...");
 
     const { data } = await axios.get(
-      `https://zaikyoov3.onrender.com/api/hailuo01?prompt=${encodeURIComponent(prompt)}&expandPrompt=${encodeURIComponent(prompt)}`
+      `https://zaikyoov3.onrender.com/api/hailuo01?prompt=${encodeURIComponent(
+        prompt
+      )}&expandPrompt=${encodeURIComponent(prompt)}`
     );
 
     if (data.status === "completed" && data.output?.length > 0) {
