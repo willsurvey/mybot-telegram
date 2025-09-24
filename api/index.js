@@ -20,7 +20,7 @@ Silakan pilih salah satu fitur di atas!`;
     ctx.reply(welcomeMessage);
 });
 
-// Menangani perintah /gambar diikuti oleh teks
+// Menangani perintah /gambar
 bot.command('gambar', async (ctx) => {
     const prompt = ctx.message.text.substring('/gambar '.length).trim();
     if (!prompt) {
@@ -67,13 +67,24 @@ bot.on('photo', async (ctx) => {
             }
         );
 
+        // --- Perbaikan Utama: Validasi Respons API ---
         const contentType = response.headers['content-type'];
-        if (contentType && contentType.includes('application/json') && response.data.length < 1000) {
-            const error = JSON.parse(response.data.toString());
-            console.error('API Error:', error);
-            return ctx.reply('Maaf, tidak dapat memproses gambar. Pastikan gambar jelas dan tidak terlalu besar.');
+
+        // Jika respons adalah JSON, itu berarti ada pesan error dari API
+        if (contentType && contentType.includes('application/json')) {
+            const errorData = JSON.parse(response.data.toString('utf-8'));
+            const errorTitle = errorData.errors && errorData.errors.length > 0 ? errorData.errors[0].title : 'Kesalahan tidak diketahui.';
+            console.error('API Error:', errorTitle);
+            return ctx.reply(`Maaf, terjadi kesalahan dari API remove.bg: ${errorTitle}.`);
         }
 
+        // Jika respons bukan PNG, itu juga kesalahan
+        if (contentType && !contentType.includes('image/png')) {
+            console.error('Invalid content type from API:', contentType);
+            return ctx.reply('Maaf, respons yang diterima dari API bukan file gambar.');
+        }
+
+        // Jika respons lolos semua validasi, kirim ke Telegram
         await ctx.telegram.sendPhoto(ctx.chat.id, { source: response.data }, { caption: 'Background berhasil dihapus!' });
         
     } catch (error) {
