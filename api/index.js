@@ -2,130 +2,105 @@ import { Telegraf } from "telegraf";
 import axios from "axios";
 import fs from "fs";
 
-// === Ganti dengan token bot kamu ===
-const bot = new Telegraf("BOT_TOKEN");
+const bot = new Telegraf(process.env.BOT_TOKEN);
+const REMOVE_BG_API_KEY = process.env.REMOVE_BG_API_KEY;
 
-// ===== Command /start =====
+// === Command /start ===
 bot.start((ctx) => {
   ctx.reply(
     "👋 Halo! Saya siap membantu.\n\n" +
       "✨ Fitur yang tersedia:\n" +
-      "🖼️ /gambar <prompt> → Buat gambar dari teks\n" +
-      "🗑️ /removebg (kirim foto dengan caption ini) → Hapus background foto\n" +
-      "🎬 /video <prompt> → Buat video dari teks"
+      "🖼️ /gambar <prompt> → Buat gambar\n" +
+      "🗑️ (reply foto dengan /removebg) → Hapus background\n" +
+      "🎬 /video <prompt> → Buat video"
   );
 });
 
-// ===== Command /gambar =====
+// === Command /gambar ===
 bot.command("gambar", async (ctx) => {
   const prompt = ctx.message.text.substring("/gambar ".length).trim();
-  if (!prompt) {
-    return ctx.reply(
-      "Tolong berikan deskripsi gambar. Contoh: /gambar seekor kucing memakai kacamata"
-    );
-  }
+  if (!prompt) return ctx.reply("❗ Contoh: /gambar kucing lucu di angkasa");
 
   try {
     ctx.reply("🖼️ Sedang membuat gambar...");
 
-    const response = await axios.get(
-      `https://zaikyoov3.onrender.com/api/can_gpt_blackbox?prompt=${encodeURIComponent(
-        prompt
-      )}`
+    const { data } = await axios.get(
+      `https://zaikyoov3.onrender.com/api/can_gpt_blackbox?prompt=${encodeURIComponent(prompt)}`
     );
 
-    const data = response.data;
-    if (data.status === "completed" && data.output && data.output.length > 0) {
-      const imageUrl = data.output[0];
-      await ctx.replyWithPhoto(
-        { url: imageUrl },
-        { caption: `✅ Gambar selesai dibuat!\nPrompt: ${prompt}` }
-      );
+    if (data.status === "completed" && data.output?.length > 0) {
+      await ctx.replyWithPhoto({ url: data.output[0] }, { caption: `✅ Prompt: ${prompt}` });
     } else {
-      ctx.reply("❌ Gagal membuat gambar, coba lagi nanti.");
+      ctx.reply("❌ Gagal membuat gambar.");
     }
-  } catch (error) {
-    console.error("Error /gambar:", error.message);
-    ctx.reply("⚠️ Terjadi kesalahan saat membuat gambar.");
+  } catch (e) {
+    console.error("Error /gambar:", e.message);
+    ctx.reply("⚠️ Terjadi kesalahan.");
   }
 });
 
-// ===== Command /removebg =====
+// === Command /removebg ===
 bot.command("removebg", async (ctx) => {
-  if (!ctx.message.reply_to_message || !ctx.message.reply_to_message.photo) {
-    return ctx.reply(
-      "📌 Gunakan perintah ini dengan cara reply ke sebuah foto.\nContoh:\n/rebg (reply ke foto)"
-    );
+  if (!ctx.message.reply_to_message?.photo) {
+    return ctx.reply("📌 Gunakan perintah ini dengan cara reply ke foto.");
   }
 
   try {
-    const fileId =
-      ctx.message.reply_to_message.photo[
-        ctx.message.reply_to_message.photo.length - 1
-      ].file_id;
+    const photo = ctx.message.reply_to_message.photo.pop();
+    const fileLink = await ctx.telegram.getFileLink(photo.file_id);
 
-    const fileLink = await ctx.telegram.getFileLink(fileId);
+    ctx.reply("⏳ Menghapus background...");
 
-    ctx.reply("⏳ Menghapus background, mohon tunggu...");
+    const response = await axios.post(
+      "https://api.remove.bg/v1.0/removebg",
+      { image_url: fileLink.href, size: "auto" },
+      {
+        headers: { "X-Api-Key": REMOVE_BG_API_KEY },
+        responseType: "arraybuffer",
+      }
+    );
 
-    const response = await axios({
-      method: "POST",
-      url: "https://api.remove.bg/v1.0/removebg",
-      data: {
-        image_url: fileLink.href,
-        size: "auto",
-      },
-      headers: {
-        "X-Api-Key": "REMOVE_BG_API_KEY",
-      },
-      responseType: "arraybuffer",
-    });
+    const filePath = "/tmp/no-bg.png";
+    fs.writeFileSync(filePath, response.data);
 
-    const outputPath = "no-bg.png";
-    fs.writeFileSync(outputPath, response.data);
-
-    await ctx.replyWithDocument({ source: outputPath });
-    fs.unlinkSync(outputPath);
-  } catch (error) {
-    console.error("Error /removebg:", error.response?.data || error.message);
-    ctx.reply("❌ Gagal menghapus background. Coba lagi.");
+    await ctx.replyWithDocument({ source: filePath, filename: "no-bg.png" });
+    fs.unlinkSync(filePath);
+  } catch (e) {
+    console.error("Error /removebg:", e.response?.data || e.message);
+    ctx.reply("❌ Gagal hapus background.");
   }
 });
 
-// ===== Command /video =====
+// === Command /video ===
 bot.command("video", async (ctx) => {
   const prompt = ctx.message.text.substring("/video ".length).trim();
-  if (!prompt) {
-    return ctx.reply(
-      "Tolong berikan deskripsi video. Contoh: /video seekor kucing menari di luar angkasa"
-    );
-  }
+  if (!prompt) return ctx.reply("❗ Contoh: /video kucing menari di angkasa");
 
   try {
-    ctx.reply("🎬 Sedang membuat video, mohon tunggu...");
+    ctx.reply("🎬 Membuat video...");
 
-    const response = await axios.get(
-      `https://zaikyoov3.onrender.com/api/hailuo01?prompt=${encodeURIComponent(
-        prompt
-      )}&expandPrompt=${encodeURIComponent(prompt)}`
+    const { data } = await axios.get(
+      `https://zaikyoov3.onrender.com/api/hailuo01?prompt=${encodeURIComponent(prompt)}&expandPrompt=${encodeURIComponent(prompt)}`
     );
 
-    const data = response.data;
-    if (data.status === "completed" && data.output && data.output.length > 0) {
-      const videoUrl = data.output[0];
-      await ctx.replyWithVideo(
-        { url: videoUrl },
-        { caption: `✅ Video selesai dibuat!\nPrompt: ${prompt}` }
-      );
+    if (data.status === "completed" && data.output?.length > 0) {
+      await ctx.replyWithVideo({ url: data.output[0] }, { caption: `✅ Prompt: ${prompt}` });
     } else {
-      ctx.reply("❌ Gagal membuat video, coba lagi nanti.");
+      ctx.reply("❌ Gagal membuat video.");
     }
-  } catch (error) {
-    console.error("Error /video:", error.message);
-    ctx.reply("⚠️ Terjadi kesalahan saat membuat video.");
+  } catch (e) {
+    console.error("Error /video:", e.message);
+    ctx.reply("⚠️ Terjadi kesalahan.");
   }
 });
 
-// ===== Jalankan bot =====
-bot.launch();
-console.log("🚀 Bot sedang berjalan...");
+// === Export untuk Vercel ===
+export default async function handler(req, res) {
+  try {
+    await bot.handleUpdate(req.body, res);
+    res.status(200).send("OK");
+  } catch (err) {
+    console.error("Webhook error:", err);
+    res.status(500).send("Internal Server Error");
+  }
+}
