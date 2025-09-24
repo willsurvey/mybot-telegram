@@ -61,7 +61,7 @@ bot.on("photo", async (ctx) => {
 
     const form = new FormData();
     form.append("image_url", fileLink.href);
-    form.append("size", "auto");
+    form.append("size", "auto"); // 👈 Pastikan size auto (resolusi penuh untuk API premium)
 
     const response = await axios.post(
       "https://api.remove.bg/v1.0/removebg",
@@ -97,13 +97,15 @@ bot.on("photo", async (ctx) => {
 
     // Kalau sukses → kirim sebagai dokumen (file PNG)
     const imageBuffer = Buffer.from(response.data, "binary");
+    console.log("Ukuran file hasil remove.bg:", imageBuffer.length, "bytes");
+
     await ctx.telegram.sendDocument(
       ctx.chat.id,
       {
         source: imageBuffer,
         filename: "no-bg.png",
       },
-      { caption: "✅ Background berhasil dihapus (file dikirim sebagai dokumen)!" }
+      { caption: "✅ Background berhasil dihapus (resolusi auto)!" }
     );
   } catch (error) {
     console.error("Kesalahan:", error);
