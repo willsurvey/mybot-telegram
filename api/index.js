@@ -3,7 +3,7 @@ import axios from "axios";
 import fs from "fs";
 
 // === Ganti dengan token bot kamu ===
-const bot = new Telegraf("ISI_TOKEN_TELEGRAM_BOT_KAMU");
+const bot = new Telegraf("BOT_TOKEN");
 
 // ===== Command /start =====
 bot.start((ctx) => {
@@ -76,7 +76,7 @@ bot.command("removebg", async (ctx) => {
         size: "auto",
       },
       headers: {
-        "X-Api-Key": "ISI_API_KEY_REMOVEBG_KAMU",
+        "X-Api-Key": "REMOVE_BG_API_KEY",
       },
       responseType: "arraybuffer",
     });
