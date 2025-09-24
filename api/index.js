@@ -95,12 +95,15 @@ bot.on("photo", async (ctx) => {
       return ctx.reply(`❌ Gagal menghapus background.\nAlasan: ${errorMsg}`);
     }
 
-    // Kalau sukses
+    // Kalau sukses → kirim sebagai dokumen (file PNG)
     const imageBuffer = Buffer.from(response.data, "binary");
-    await ctx.telegram.sendPhoto(
+    await ctx.telegram.sendDocument(
       ctx.chat.id,
-      { source: imageBuffer },
-      { caption: "✅ Background berhasil dihapus!" }
+      {
+        source: imageBuffer,
+        filename: "no-bg.png",
+      },
+      { caption: "✅ Background berhasil dihapus (file dikirim sebagai dokumen)!" }
     );
   } catch (error) {
     console.error("Kesalahan:", error);
