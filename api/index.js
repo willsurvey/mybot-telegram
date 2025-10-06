@@ -105,7 +105,7 @@ bot.command("midjourney", async (ctx) => {
 
     const apiUrl = `https://dev.oculux.xyz/api/mj-proxy-pub?prompt=${encodeURIComponent(
       prompt
-    )}&usePolling=true`;
+    )}&usePolling=false`;
 
     const response = await axios.get(apiUrl);
     const data = response.data;
